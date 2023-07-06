@@ -1,0 +1,19 @@
+[1/9] Performing build step for 'bootloader'
+[1/1] cmd.exe /C "cd /D C:\Users\alexi\Documents\tflite-micro-esp-examples\examples\micro_speech\build\bootloader\esp-idf\esptool_py && C:\Espressif\python_env\idf5.0_py3.11_env\Scripts\python.exe C:/Espressif/frameworks/esp-idf-v5.0.2/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x1000 C:/Users/alexi/Documents/tflite-micro-esp-examples/examples/micro_speech/build/bootloader/bootloader.bin"
+Bootloader binary size 0x6de0 bytes. 0x220 bytes (2%) free.
+[2/7] Building CXX object esp-idf/main/CMakeFiles/__idf_main.dir/audio_provider.cc.obj
+In file included from C:/Users/alexi/Documents/tflite-micro-esp-examples/examples/micro_speech/main/audio_provider.cc:29:
+C:/Espressif/frameworks/esp-idf-v5.0.2/components/spi_flash/include/esp_spi_flash.h:6:2: warning: #warning esp_spi_flash.h is deprecated, please use spi_flash_mmap.h instead [-Wcpp]
+    6 | #warning esp_spi_flash.h is deprecated, please use spi_flash_mmap.h instead
+      |  ^~~~~~~
+[3/7] Linking C static library esp-idf\main\libmain.a
+[4/7] Generating ld/sections.ld
+[5/7] Linking CXX executable micro_speech.elf
+[6/7] Generating binary image from built executable
+esptool.py v4.5.1
+Creating esp32 image...
+Merged 2 ELF sections
+Successfully created esp32 image.
+Generated C:/Users/alexi/Documents/tflite-micro-esp-examples/examples/micro_speech/build/micro_speech.bin
+[7/7] cmd.exe /C "cd /D C:\Users\alexi\Documents\tflite-micro-esp-examples\examples\micro_speech\build\esp-idf\esptool_py && C:\Espressif\python_env\idf5.0_py3.11_env\Scripts\python.exe C:/Espressif/frameworks/esp-idf-v5.0.2/components/partition_table/check_sizes.py --offset 0x8000 partition --type app C:/Users/alexi/Documents/tflite-micro-esp-examples/examples/micro_speech/build/partition_table/partition-table.bin C:/Users/alexi/Documents/tflite-micro-esp-examples/examples/micro_speech/build/micro_speech.bin"
+micro_speech.bin binary size 0x48100 bytes. Smallest app partition is 0x200000 bytes. 0x1b7f00 bytes (86%) free.
