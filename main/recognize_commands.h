@@ -95,7 +95,7 @@ class PreviousResultsQueue {
   }
 
  private:
-  static constexpr int kMaxResults = 50;
+  static constexpr int kMaxResults = 8;
   Result results_[kMaxResults];
 
   int front_index_;
@@ -125,8 +125,8 @@ class RecognizeCommands {
   // further recognitions for a set time after one has been triggered, which can
   // help reduce spurious recognitions.
   explicit RecognizeCommands(int32_t average_window_duration_ms = 1000,
-                             uint8_t detection_threshold = 200,
-                             int32_t suppression_ms = 1500,
+                             uint8_t detection_threshold = 148,
+                             int32_t suppression_ms = 300,
                              int32_t minimum_count = 3);
 
   // Call this with the results of running a model on sample data.
@@ -143,6 +143,8 @@ class RecognizeCommands {
   int32_t minimum_count_;
 
   // Working variables
+  int8_t scores_buffer[3];
+  int8_t buffer_index=0;
   PreviousResultsQueue previous_results_;
   const char* previous_top_label_;
   int32_t previous_top_label_time_;

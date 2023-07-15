@@ -26,7 +26,7 @@ RecognizeCommands::RecognizeCommands(int32_t average_window_duration_ms,
       suppression_ms_(suppression_ms),
       minimum_count_(minimum_count),
       previous_results_() {
-  previous_top_label_ = "silence";
+  previous_top_label_ = "background";
   previous_top_label_time_ = std::numeric_limits<int32_t>::min();
 }
 
@@ -51,66 +51,83 @@ TfLiteStatus RecognizeCommands::ProcessLatestResults(
     return kTfLiteError;
   }
 
-  if ((!previous_results_.empty()) &&
-      (current_time_ms < previous_results_.front().time_)) {
-    MicroPrintf(
-        "Results must be fed in increasing time order, but received a "
-        "timestamp of %d that was earlier than the previous one of %d",
-        current_time_ms, previous_results_.front().time_);
-    return kTfLiteError;
-  }
+  // if ((!previous_results_.empty()) &&
+  //     (current_time_ms < previous_results_.front().time_)) {
+  //   MicroPrintf(
+  //       "Results must be fed in increasing time order, but received a "
+  //       "timestamp of %d that was earlier than the previous one of %d",
+  //       current_time_ms, previous_results_.front().time_);
+  //   return kTfLiteError;
+  // }
 
-  // Add the latest results to the head of the queue.
-  previous_results_.push_back({current_time_ms, latest_results->data.int8});
+  // // Add the latest results to the head of the queue.
+  // previous_results_.push_back({current_time_ms, latest_results->data.int8});
 
-  // Prune any earlier results that are too old for the averaging window.
-  const int64_t time_limit = current_time_ms - average_window_duration_ms_;
-  while ((!previous_results_.empty()) &&
-         previous_results_.front().time_ < time_limit) {
-    previous_results_.pop_front();
-  }
+  // // Prune any earlier results that are too old for the averaging window.
+  // const int64_t time_limit = current_time_ms - average_window_duration_ms_;
+  // while ((!previous_results_.empty()) &&
+  //        previous_results_.front().time_ < time_limit) {
+  //   previous_results_.pop_front();
+  // }
 
-  // If there are too few results, assume the result will be unreliable and
-  // bail.
-  const int64_t how_many_results = previous_results_.size();
-  const int64_t earliest_time = previous_results_.front().time_;
-  const int64_t samples_duration = current_time_ms - earliest_time;
-  if ((how_many_results < minimum_count_) ||
-      (samples_duration < (average_window_duration_ms_ / 4))) {
-    *found_command = previous_top_label_;
-    *score = 0;
-    *is_new_command = false;
-    return kTfLiteOk;
-  }
-
+  // // If there are too few results, assume the result will be unreliable and
+  // // bail.
+  // const int64_t how_many_results = previous_results_.size();
+  // const int64_t earliest_time = previous_results_.front().time_;
+  // const int64_t samples_duration = current_time_ms - earliest_time;
+  // if ((how_many_results < minimum_count_) ||
+  //     (samples_duration < (average_window_duration_ms_ / 4))) {
+  //   *found_command = previous_top_label_;
+  //   *score = 0;
+  //   *is_new_command = false;
+  //   return kTfLiteOk;
+  // }
+  bool found = false;
+  int16_t new_score = 0;
+  int8_t* scores = latest_results->data.int8;
+  scores_buffer[buffer_index] = scores[0];
+  buffer_index++;
+  if (buffer_index >= 3) 
+    buffer_index = 0;
+  int16_t buffer_score = (int16_t)(scores_buffer[0] + scores_buffer[1]
+    + scores_buffer[2]);
   // Calculate the average score across all the results in the window.
-  int32_t average_scores[kCategoryCount];
-  for (int offset = 0; offset < previous_results_.size(); ++offset) {
-    PreviousResultsQueue::Result previous_result =
-        previous_results_.from_front(offset);
-    const int8_t* scores = previous_result.scores;
-    for (int i = 0; i < kCategoryCount; ++i) {
-      if (offset == 0) {
-        average_scores[i] = scores[i] + 128;
-      } else {
-        average_scores[i] += scores[i] + 128;
-      }
-    }
+  // int32_t average_scores[kCategoryCount];
+  // for (int offset = 0; offset < previous_results_.size(); ++offset) {
+  //   PreviousResultsQueue::Result previous_result =
+  //       previous_results_.from_front(offset);
+  //   const int8_t* scores = previous_result.scores;
+  if (buffer_score > 30) {
+    found = true;
+    new_score = buffer_score;
+    //MicroPrintf("snoring found : %d", scores[0]);
   }
-  for (int i = 0; i < kCategoryCount; ++i) {
-    average_scores[i] /= how_many_results;
-  }
+  //MicroPrintf("Snoring : %d, Background: %d", scores[0], scores[1]);
+    // for (int i = 0; i < kCategoryCount; ++i) {
+    //   if (offset == 0) {
+    //     if (i == 0) {
+    //       MicroPrintf("snoring score : %d", scores[i]);
+    //     }
+    //     average_scores[i] = scores[i] + 128;
+    //   } else {
+    //     average_scores[i] += scores[i] + 128;
+    //   }
+    // }
+  //}
+  // for (int i = 0; i < kCategoryCount; ++i) {
+  //   average_scores[i] /= how_many_results;
+  // }
 
   // Find the current highest scoring category.
-  int current_top_index = 0;
-  int32_t current_top_score = 0;
-  for (int i = 0; i < kCategoryCount; ++i) {
-    if (average_scores[i] > current_top_score) {
-      current_top_score = average_scores[i];
-      current_top_index = i;
-    }
-  }
-  const char* current_top_label = kCategoryLabels[current_top_index];
+  // int current_top_index = 0;
+  // int32_t current_top_score = 0;
+  // for (int i = 0; i < kCategoryCount; ++i) {
+  //   if (average_scores[i] > current_top_score) {
+  //     current_top_score = average_scores[i];
+  //     current_top_index = i;
+  //   }
+  // }
+  // const char* current_top_label = kCategoryLabels[current_top_index];
 
   // If we've recently had another label trigger, assume one that occurs too
   // soon afterwards is a bad result.
@@ -121,17 +138,15 @@ TfLiteStatus RecognizeCommands::ProcessLatestResults(
   } else {
     time_since_last_top = current_time_ms - previous_top_label_time_;
   }
-  if ((current_top_score > detection_threshold_) &&
-      ((current_top_label != previous_top_label_) ||
-       (time_since_last_top > suppression_ms_))) {
-    previous_top_label_ = current_top_label;
+  if ((found) &&
+      (time_since_last_top > suppression_ms_)) {
     previous_top_label_time_ = current_time_ms;
     *is_new_command = true;
   } else {
     *is_new_command = false;
   }
-  *found_command = current_top_label;
-  *score = current_top_score;
+  *found_command = kCategoryLabels[0];
+  *score = new_score;
 
   return kTfLiteOk;
 }

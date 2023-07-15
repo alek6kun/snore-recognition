@@ -39,7 +39,7 @@ int32_t previous_time = 0;
 // Create an area of memory to use for input, output, and intermediate arrays.
 // The size of this will depend on the model you're using, and may need to be
 // determined by experimentation.
-constexpr int kTensorArenaSize = 30 * 1024;
+constexpr int kTensorArenaSize = 150 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
 int8_t feature_buffer[kFeatureElementCount];
 int8_t* model_input_buffer = nullptr;
@@ -64,8 +64,8 @@ void setup() {
   //
   // tflite::AllOpsResolver resolver;
   // NOLINTNEXTLINE(runtime-global-variables)
-  static tflite::MicroMutableOpResolver<4> micro_op_resolver;
-  if (micro_op_resolver.AddDepthwiseConv2D() != kTfLiteOk) {
+  static tflite::MicroMutableOpResolver<18> micro_op_resolver;
+  if (micro_op_resolver.AddConv2D() != kTfLiteOk) {
     return;
   }
   if (micro_op_resolver.AddFullyConnected() != kTfLiteOk) {
@@ -75,6 +75,51 @@ void setup() {
     return;
   }
   if (micro_op_resolver.AddReshape() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddMaxPool2D() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddShape() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddStridedSlice() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddPack() != kTfLiteOk) {
+    return;
+  }
+  // if (micro_op_resolver.AddReduceProd() != kTfLiteOk) {
+  //   return;
+  // }
+  if (micro_op_resolver.AddFloorDiv() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddAdd() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddMul() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddSlice() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddFill() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddConcatenation() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddExpandDims() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddResizeBilinear() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddQuantize() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddDequantize() != kTfLiteOk) {
     return;
   }
 
@@ -97,6 +142,16 @@ void setup() {
        (kFeatureSliceCount * kFeatureSliceSize)) ||
       (model_input->type != kTfLiteInt8)) {
     MicroPrintf("Bad input tensor parameters in model");
+    if (model_input->dims->size != 2) {
+      MicroPrintf("input dim size : %d",model_input->dims->size);
+    }
+    if (model_input->dims->data[1] !=
+       (kFeatureSliceCount * kFeatureSliceSize)) {
+      MicroPrintf("input spectogram dim : %d", model_input->dims->data[1]);
+    }
+    if (model_input->type != kTfLiteInt8) {
+      MicroPrintf("input type : %d", model_input->type);
+    }
     return;
   }
   model_input_buffer = model_input->data.int8;

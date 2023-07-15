@@ -42,10 +42,10 @@ using namespace std;
 static const char* TAG = "TF_LITE_AUDIO_PROVIDER";
 
 /* ringbuffer to hold the incoming audio data */
-RingbufHandle_t buf_handle;
+
 
 volatile int32_t g_latest_audio_timestamp = 0;
-/* model requires 20ms new data from g_audio_capture_buffer and 10ms old data
+/* model requires 16ms new data from g_audio_capture_buffer and 16ms old data
  * each time , storing old data in the histrory buffer , {
  * history_samples_to_keep = 10 * 16 } */
 constexpr int32_t history_samples_to_keep =
@@ -56,11 +56,12 @@ constexpr int32_t history_samples_to_keep =
 constexpr int32_t new_samples_to_get =
     (kFeatureSliceStrideMs * (kAudioSampleFrequency / 1000));
 
-const int32_t kAudioCaptureBufferSize = 16000;
-const int32_t i2s_bytes_to_read = 3200;
+const int32_t kAudioCaptureBufferSize = 8192;
+const int32_t i2s_bytes_to_read = 64;
 
 namespace {
-  int16_t sBuffer[kAudioCaptureBufferSize]; // there will be 128 bytes added per read
+  RingbufHandle_t buf_handle;
+  int16_t sBuffer[i2s_bytes_to_read]; // there will be 128 bytes added per read
   int16_t g_audio_output_buffer[kMaxAudioSampleSize];
   bool g_is_audio_initialized = false;
   int16_t g_history_buffer[history_samples_to_keep];
@@ -120,7 +121,7 @@ static void CaptureSamples(void* arg) {
         ESP_LOGW(TAG, "Partial I2S read");
       }
       if (result == ESP_OK) {
-        BaseType_t err = xRingbufferSend(buf_handle, (void*)sBuffer, bytes_read, 10);
+        BaseType_t err = xRingbufferSend(buf_handle, (void*)sBuffer, bytes_read, 30);
         if (err == pdFALSE) {
           ESP_LOGE(TAG, "Failed to send to ring buffer");
         }
@@ -169,14 +170,14 @@ TfLiteStatus GetAudioSamples(int start_ms, int duration_ms,
   memcpy((void*)(g_audio_output_buffer), (void*)(g_history_buffer),
          history_samples_to_keep * sizeof(int16_t));
 
-  /* copy 320 samples (640 bytes) from rb at ( int16_t*(g_audio_output_buffer) +
-   * 160 ), first 160 samples (320 bytes) will be from history */
+  /* copy 256 samples (512 bytes) from rb at ( int16_t*(g_audio_output_buffer) +
+   * 256 ), first 256 samples (512 bytes) will be from history */
   size_t bytes_read = 0;
-  void* new_samples = xRingbufferReceiveUpTo(buf_handle, &bytes_read, 10, 
+  int16_t* new_samples = (int16_t*)xRingbufferReceiveUpTo(buf_handle, &bytes_read, 30, 
                          new_samples_to_get * sizeof(int16_t));
   if (new_samples != NULL) {
     if (bytes_read < 0) {
-      ESP_LOGE(TAG, " Model Could not read data from Ring Buffer");
+      ESP_LOGE(TAG, " Model Could not read data from Ring Buffer : %d ", bytes_read);
     } else if (bytes_read < new_samples_to_get * sizeof(int16_t)) {
       ESP_LOGD(TAG, "RB FILLED RIGHT NOW IS %d",
               (int)(kAudioCaptureBufferSize - xRingbufferGetCurFreeSize(buf_handle)));
@@ -185,11 +186,11 @@ TfLiteStatus GetAudioSamples(int start_ms, int duration_ms,
               bytes_read, (int) (new_samples_to_get * sizeof(int16_t)));
     }
 
-    memcpy((void*)(g_audio_output_buffer + history_samples_to_keep), new_samples,
+    memcpy((void*)(g_audio_output_buffer + history_samples_to_keep), (void*)new_samples,
           new_samples_to_get * sizeof(int16_t));
 
     /* clear space in ring buffer */
-    vRingbufferReturnItem(buf_handle, new_samples);
+    vRingbufferReturnItem(buf_handle, (void*)new_samples);
 
     /* copy 320 bytes from output_buff into history */
     memcpy((void*)(g_history_buffer),

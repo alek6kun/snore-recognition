@@ -39,8 +39,8 @@ TfLiteStatus InitializeMicroFeatures() {
   config.window.step_size_ms = kFeatureSliceStrideMs;
   config.noise_reduction.smoothing_bits = 10;
   config.filterbank.num_channels = kFeatureSliceSize;
-  config.filterbank.lower_band_limit = 125.0;
-  config.filterbank.upper_band_limit = 7500.0;
+  config.filterbank.lower_band_limit = 80.0;
+  config.filterbank.upper_band_limit = 7600.0;
   config.noise_reduction.smoothing_bits = 10;
   config.noise_reduction.even_smoothing = 0.025;
   config.noise_reduction.odd_smoothing = 0.06;
@@ -76,7 +76,7 @@ TfLiteStatus GenerateMicroFeatures(const int16_t* input, int input_size,
     frontend_input = input;
     g_is_first_time = false;
   } else {
-    frontend_input = input + 160;
+    frontend_input = input + 256;
   }
   FrontendOutput frontend_output = FrontendProcessSamples(
       &g_micro_features_state, frontend_input, input_size, num_samples_read);
