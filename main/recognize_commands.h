@@ -143,8 +143,8 @@ class RecognizeCommands {
   int32_t minimum_count_;
 
   // Working variables
-  int8_t scores_buffer[3];
-  int8_t buffer_index=0;
+  uint8_t scores_buffer[3];
+  uint8_t buffer_index=0;
   PreviousResultsQueue previous_results_;
   const char* previous_top_label_;
   int32_t previous_top_label_time_;

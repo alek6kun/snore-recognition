@@ -39,8 +39,8 @@ TfLiteStatus InitializeMicroFeatures() {
   config.window.step_size_ms = kFeatureSliceStrideMs;
   config.noise_reduction.smoothing_bits = 10;
   config.filterbank.num_channels = kFeatureSliceSize;
-  config.filterbank.lower_band_limit = 80.0;
-  config.filterbank.upper_band_limit = 7600.0;
+  config.filterbank.lower_band_limit = 40.0;
+  config.filterbank.upper_band_limit = 6000.0;
   config.noise_reduction.smoothing_bits = 10;
   config.noise_reduction.even_smoothing = 0.025;
   config.noise_reduction.odd_smoothing = 0.06;
@@ -60,6 +60,10 @@ TfLiteStatus InitializeMicroFeatures() {
   return kTfLiteOk;
 }
 
+void ResetFrontendState() {
+  FrontendReset(&g_micro_features_state);
+}
+
 // This is not exposed in any header, and is only used for testing, to ensure
 // that the state is correctly set up before generating results.
 void SetMicroFeaturesNoiseEstimates(const uint32_t* estimate_presets) {
@@ -69,17 +73,11 @@ void SetMicroFeaturesNoiseEstimates(const uint32_t* estimate_presets) {
 }
 
 TfLiteStatus GenerateMicroFeatures(const int16_t* input, int input_size,
-                                   int output_size, int8_t* output,
+                                   int output_size, uint8_t* output,
                                    size_t* num_samples_read) {
-  const int16_t* frontend_input;
-  if (g_is_first_time) {
-    frontend_input = input;
-    g_is_first_time = false;
-  } else {
-    frontend_input = input + 256;
-  }
+  
   FrontendOutput frontend_output = FrontendProcessSamples(
-      &g_micro_features_state, frontend_input, input_size, num_samples_read);
+      &g_micro_features_state, input, input_size, num_samples_read);
 
   for (size_t i = 0; i < frontend_output.size; ++i) {
     // These scaling values are derived from those used in input_data.py in the
@@ -97,17 +95,13 @@ TfLiteStatus GenerateMicroFeatures(const int16_t* input, int input_size,
     // input = (((feature / 25.6) / 26.0) * 256) - 128
     // To simplify this and perform it in 32-bit integer math, we rearrange to:
     // input = (feature * 256) / (25.6 * 26.0) - 128
-    constexpr int32_t value_scale = 256;
-    constexpr int32_t value_div = static_cast<int32_t>((25.6f * 26.0f) + 0.5f);
-    int32_t value =
-        ((frontend_output.values[i] * value_scale) + (value_div / 2)) /
-        value_div;
-    value -= 128;
-    if (value < -128) {
-      value = -128;
+    int32_t value = (frontend_output.values[i] * 128)  / 335;
+
+    if (value < 0) {
+      value = 0;
     }
-    if (value > 127) {
-      value = 127;
+    if (value > 256) {
+      value = 256;
     }
     output[i] = value;
   }

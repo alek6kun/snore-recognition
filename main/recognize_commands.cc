@@ -34,17 +34,16 @@ TfLiteStatus RecognizeCommands::ProcessLatestResults(
     const TfLiteTensor* latest_results, const int32_t current_time_ms,
     const char** found_command, uint8_t* score, bool* is_new_command) {
   if ((latest_results->dims->size != 2) ||
-      (latest_results->dims->data[0] != 1) ||
-      (latest_results->dims->data[1] != kCategoryCount)) {
+      (latest_results->dims->data[0] != 1)) {
     MicroPrintf(
         "The results for recognition should contain %d elements, but there are "
         "%d in an %d-dimensional shape",
-        kCategoryCount, latest_results->dims->data[1],
+        kCategoryCount, latest_results->dims->data[0],
         latest_results->dims->size);
     return kTfLiteError;
   }
 
-  if (latest_results->type != kTfLiteInt8) {
+  if (latest_results->type != kTfLiteUInt8) {
     MicroPrintf(
         "The results for recognition should be int8_t elements, but are %d",
         latest_results->type);
@@ -84,25 +83,24 @@ TfLiteStatus RecognizeCommands::ProcessLatestResults(
   // }
   bool found = false;
   int16_t new_score = 0;
-  int8_t* scores = latest_results->data.int8;
+  uint8_t* scores = latest_results->data.uint8;
   scores_buffer[buffer_index] = scores[0];
   buffer_index++;
   if (buffer_index >= 3) 
     buffer_index = 0;
-  int16_t buffer_score = (int16_t)(scores_buffer[0] + scores_buffer[1]
-    + scores_buffer[2]);
-  // Calculate the average score across all the results in the window.
+  uint8_t buffer_score = (scores_buffer[0] + scores_buffer[1]
+    + scores_buffer[2])/3;
+  // //Calculate the average score across all the results in the window.
   // int32_t average_scores[kCategoryCount];
   // for (int offset = 0; offset < previous_results_.size(); ++offset) {
   //   PreviousResultsQueue::Result previous_result =
   //       previous_results_.from_front(offset);
   //   const int8_t* scores = previous_result.scores;
-  if (buffer_score > 30) {
+  if (buffer_score > 128) {
     found = true;
     new_score = buffer_score;
-    //MicroPrintf("snoring found : %d", scores[0]);
   }
-  //MicroPrintf("Snoring : %d, Background: %d", scores[0], scores[1]);
+  //MicroPrintf("Snoring : %d", scores[0]);
     // for (int i = 0; i < kCategoryCount; ++i) {
     //   if (offset == 0) {
     //     if (i == 0) {

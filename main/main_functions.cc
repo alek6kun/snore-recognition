@@ -39,10 +39,10 @@ int32_t previous_time = 0;
 // Create an area of memory to use for input, output, and intermediate arrays.
 // The size of this will depend on the model you're using, and may need to be
 // determined by experimentation.
-constexpr int kTensorArenaSize = 150 * 1024;
+constexpr int kTensorArenaSize = 100 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
-int8_t feature_buffer[kFeatureElementCount];
-int8_t* model_input_buffer = nullptr;
+uint8_t feature_buffer[kFeatureElementCount];
+uint8_t* model_input_buffer = nullptr;
 }  // namespace
 
 // The name of this function is important for Arduino compatibility.
@@ -64,14 +64,11 @@ void setup() {
   //
   // tflite::AllOpsResolver resolver;
   // NOLINTNEXTLINE(runtime-global-variables)
-  static tflite::MicroMutableOpResolver<18> micro_op_resolver;
+  static tflite::MicroMutableOpResolver<11> micro_op_resolver;
   if (micro_op_resolver.AddConv2D() != kTfLiteOk) {
     return;
   }
   if (micro_op_resolver.AddFullyConnected() != kTfLiteOk) {
-    return;
-  }
-  if (micro_op_resolver.AddSoftmax() != kTfLiteOk) {
     return;
   }
   if (micro_op_resolver.AddReshape() != kTfLiteOk) {
@@ -89,30 +86,6 @@ void setup() {
   if (micro_op_resolver.AddPack() != kTfLiteOk) {
     return;
   }
-  // if (micro_op_resolver.AddReduceProd() != kTfLiteOk) {
-  //   return;
-  // }
-  if (micro_op_resolver.AddFloorDiv() != kTfLiteOk) {
-    return;
-  }
-  if (micro_op_resolver.AddAdd() != kTfLiteOk) {
-    return;
-  }
-  if (micro_op_resolver.AddMul() != kTfLiteOk) {
-    return;
-  }
-  if (micro_op_resolver.AddSlice() != kTfLiteOk) {
-    return;
-  }
-  if (micro_op_resolver.AddFill() != kTfLiteOk) {
-    return;
-  }
-  if (micro_op_resolver.AddConcatenation() != kTfLiteOk) {
-    return;
-  }
-  if (micro_op_resolver.AddExpandDims() != kTfLiteOk) {
-    return;
-  }
   if (micro_op_resolver.AddResizeBilinear() != kTfLiteOk) {
     return;
   }
@@ -120,6 +93,9 @@ void setup() {
     return;
   }
   if (micro_op_resolver.AddDequantize() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddLogistic() != kTfLiteOk) {
     return;
   }
 
@@ -140,7 +116,7 @@ void setup() {
   if ((model_input->dims->size != 2) || (model_input->dims->data[0] != 1) ||
       (model_input->dims->data[1] !=
        (kFeatureSliceCount * kFeatureSliceSize)) ||
-      (model_input->type != kTfLiteInt8)) {
+      (model_input->type != kTfLiteUInt8)) {
     MicroPrintf("Bad input tensor parameters in model");
     if (model_input->dims->size != 2) {
       MicroPrintf("input dim size : %d",model_input->dims->size);
@@ -149,12 +125,12 @@ void setup() {
        (kFeatureSliceCount * kFeatureSliceSize)) {
       MicroPrintf("input spectogram dim : %d", model_input->dims->data[1]);
     }
-    if (model_input->type != kTfLiteInt8) {
+    if (model_input->type != kTfLiteUInt8) {
       MicroPrintf("input type : %d", model_input->type);
     }
     return;
   }
-  model_input_buffer = model_input->data.int8;
+  model_input_buffer = model_input->data.uint8;
 
   // Prepare to access the audio spectrograms from a microphone or other source
   // that will provide the inputs to the neural network.
