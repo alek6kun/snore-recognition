@@ -11,6 +11,9 @@ The datasets of audio samples used for training are made up of 500 snoring sound
 T. H. Khan, "A deep learning model for snoring detection and vibration notification using a smart wearable gadget," Electronics,
 vol. 8, no. 9, article. 987, ISSN 2079-9292, 2019.
 
+The main files modified from the micro speech example by Tensorflow are in main/, and they are : audio_provider.cc, feature_provider.cc,
+recognize_commands.cc, and of course model.cc.
+
 ## Deploy to ESP32
 
 The following instructions will help you build and deploy this sample
