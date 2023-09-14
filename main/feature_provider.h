@@ -45,8 +45,6 @@ class FeatureProvider {
  private:
   int feature_size_;
   uint8_t* feature_data_;
-  // Make sure we don't try to use cached information if this is the first call
-  // into the provider.
   bool is_first_run_;
 };
 

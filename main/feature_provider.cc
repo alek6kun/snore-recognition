@@ -26,7 +26,11 @@ limitations under the License.
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 
-const int new_samples = 7680;
+/* From testing, inference takes approximately 450ms to complete. Therefore the
+   second core of the microcontroller will listen to 480ms of audio at a time, 
+   so that the first core always waits for the second core and the audio data stays
+   continuous. */
+const int new_samples = 7680; // Number of samples corresponding to 480ms of audio
 const int new_features_slices = 30;
 const int new_features_elements = new_features_slices * kFeatureSliceSize;
 namespace {
@@ -36,6 +40,7 @@ namespace {
   TaskHandle_t xAudio;
 }
 
+// Task run by the second core
 static void GetAudioSamples(void* arg) {
   while(1) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -65,9 +70,7 @@ TfLiteStatus FeatureProvider::PopulateFeatureData(
     return kTfLiteError;
   }
 
-
-  // int slices_needed = current_step - last_step;
-  // If this is the first call, make sure we don't use any cached information.
+  // If this is the first call, initiate the audio sampling task.
   if (is_first_run_) {
     TfLiteStatus init_status = InitializeMicroFeatures();
     xMutex = xSemaphoreCreateMutex();
@@ -80,13 +83,14 @@ TfLiteStatus FeatureProvider::PopulateFeatureData(
 
   *how_many_new_slices = kFeatureSliceCount;
 
-  //First we shift feature data by 480ms, then we fill new feature data with 480ms of
-  //audio samples
-  //We add the new audio samples to the audio buffer, then tell the audio capturer to 
-  //continue capturing audio while generating micro features with the audio buffer.
+  /*First we shift feature data by 480ms, then we fill new feature data with 480ms of
+    audio samples. */
   memmove((void*)audio_samples, (void*)(audio_samples + new_samples),
           sizeof(int16_t)*(audio_size - new_samples));
 
+  /* The feature generator will wait on this line until the audio provider is finished.
+     Then it will copy the new samples to a buffer and give the mutex back so the audio
+     provider can continue listening right away. */
   xSemaphoreTake(xMutex, portMAX_DELAY);
   memcpy((void*)(audio_samples + audio_size - new_samples),
          (void*)(new_audios_buffer), sizeof(int16_t)*new_samples);
@@ -97,6 +101,7 @@ TfLiteStatus FeatureProvider::PopulateFeatureData(
   int16_t* new_audio_data = audio_samples + audio_size - new_samples;
   memmove((void*)(feature_data_), (void*)(feature_data_ + new_features_elements),
           sizeof(uint8_t)*(kFeatureElementCount - new_features_elements));
+  
   for (int i = 0; i < new_features_slices; ++i) {
     uint8_t* new_slice_data = (feature_data_ + kFeatureElementCount 
         - new_features_elements + (i * kFeatureSliceSize));
@@ -108,11 +113,6 @@ TfLiteStatus FeatureProvider::PopulateFeatureData(
       return generate_status;
     }
   }
-  // for (int i = 0; i < kFeatureSliceCount; ++i) {
-  //   for (int j = 0; j< kFeatureSliceSize; j++) {
-  //     printf("%d,", *(feature_data_+i*kFeatureSliceCount+j));
-  //   }
-  //   printf("\n");
-  // }
+
   return kTfLiteOk;
 }

@@ -124,10 +124,7 @@ class RecognizeCommands {
   // initially being populated for example. The suppression argument disables
   // further recognitions for a set time after one has been triggered, which can
   // help reduce spurious recognitions.
-  explicit RecognizeCommands(int32_t average_window_duration_ms = 1000,
-                             uint8_t detection_threshold = 148,
-                             int32_t suppression_ms = 300,
-                             int32_t minimum_count = 3);
+  explicit RecognizeCommands(uint8_t detection_threshold = 128);
 
   // Call this with the results of running a model on sample data.
   TfLiteStatus ProcessLatestResults(const TfLiteTensor* latest_results,
@@ -137,17 +134,11 @@ class RecognizeCommands {
 
  private:
   // Configuration
-  int32_t average_window_duration_ms_;
   uint8_t detection_threshold_;
-  int32_t suppression_ms_;
-  int32_t minimum_count_;
 
   // Working variables
   uint8_t scores_buffer[3];
-  uint8_t buffer_index=0;
-  PreviousResultsQueue previous_results_;
-  const char* previous_top_label_;
-  int32_t previous_top_label_time_;
+  uint8_t buffer_index = 0;
 };
 
 #endif  // TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_RECOGNIZE_COMMANDS_H_

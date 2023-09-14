@@ -41,12 +41,7 @@ using namespace std;
 
 static const char* TAG = "TF_LITE_AUDIO_PROVIDER";
 
-/* ringbuffer to hold the incoming audio data */
-
-
 volatile int32_t g_latest_audio_timestamp = 0;
-
-const int32_t i2s_bytes_to_read = 15872*2;
 
 namespace {
   bool g_is_audio_initialized = false;
@@ -112,7 +107,6 @@ void capture_sample(int16_t* audio_samples, int nb_samples) {
         audio_samples[i] = audio_samples[i+1];
         audio_samples[i+1] = temp;
       }
-      // printf("read %d bytes\n", bytes_read);
       /* update the timestamp (in ms) to let the model know that new data has
       * arrived */
       g_latest_audio_timestamp = g_latest_audio_timestamp +

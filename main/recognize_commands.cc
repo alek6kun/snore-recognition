@@ -17,18 +17,8 @@ limitations under the License.
 
 #include <limits>
 
-RecognizeCommands::RecognizeCommands(int32_t average_window_duration_ms,
-                                     uint8_t detection_threshold,
-                                     int32_t suppression_ms,
-                                     int32_t minimum_count)
-    : average_window_duration_ms_(average_window_duration_ms),
-      detection_threshold_(detection_threshold),
-      suppression_ms_(suppression_ms),
-      minimum_count_(minimum_count),
-      previous_results_() {
-  previous_top_label_ = "background";
-  previous_top_label_time_ = std::numeric_limits<int32_t>::min();
-}
+RecognizeCommands::RecognizeCommands(uint8_t detection_threshold)
+      : detection_threshold_(detection_threshold) {}
 
 TfLiteStatus RecognizeCommands::ProcessLatestResults(
     const TfLiteTensor* latest_results, const int32_t current_time_ms,
@@ -53,35 +43,22 @@ TfLiteStatus RecognizeCommands::ProcessLatestResults(
   bool found = false;
   int16_t new_score = 0;
   uint8_t* scores = latest_results->data.uint8;
+
   scores_buffer[buffer_index] = scores[0];
   buffer_index++;
-  if (buffer_index >= 3) 
+  if (buffer_index >= 3 || buffer_index <= -1) 
     buffer_index = 0;
+  
+  //Calculate the average score across the last 3 results.
   uint8_t buffer_score = (scores_buffer[0] + scores_buffer[1]
     + scores_buffer[2])/3;
 
-  //Calculate the average score across all the results in the window.
-  if (buffer_score > 128) {
+  if (buffer_score > detection_threshold_) {
     found = true;
     new_score = buffer_score;
   }
 
-  // If we've recently had another label trigger, assume one that occurs too
-  // soon afterwards is a bad result.
-  int64_t time_since_last_top;
-  if ((previous_top_label_ == kCategoryLabels[0]) ||
-      (previous_top_label_time_ == std::numeric_limits<int32_t>::min())) {
-    time_since_last_top = std::numeric_limits<int32_t>::max();
-  } else {
-    time_since_last_top = current_time_ms - previous_top_label_time_;
-  }
-  if ((found) &&
-      (time_since_last_top > suppression_ms_)) {
-    previous_top_label_time_ = current_time_ms;
-    *is_new_command = true;
-  } else {
-    *is_new_command = false;
-  }
+  *is_new_command = found;
   *found_command = kCategoryLabels[0];
   *score = new_score;
 
