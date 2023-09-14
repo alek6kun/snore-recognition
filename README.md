@@ -7,6 +7,10 @@ when it has detected snoring on the TTY terminal.
 The model is 168 KB in size, and its inputs are spectrograms on the logarithmic and mel scale. The model is approximately run twice a second,
 and has an accuracy of 95% on the test data.
 
+![The log mel spectrograms fed to the model](log_mel_image.PNG)
+:--:
+*The log mel spectrograms fed to the model* 
+
 The datasets of audio samples used for training are made up of 500 snoring sounds, 500 non-snoring sounds, sourced from this work:
 T. H. Khan, "A deep learning model for snoring detection and vibration notification using a smart wearable gadget," Electronics,
 vol. 8, no. 9, article. 987, ISSN 2079-9292, 2019.
@@ -14,12 +18,17 @@ vol. 8, no. 9, article. 987, ISSN 2079-9292, 2019.
 The main files modified from the micro speech example by Tensorflow are in main/, and they are : audio_provider.cc, feature_provider.cc,
 recognize_commands.cc, and of course model.cc.
 
+![The model training result](Training.PNG)
+:--:
+*The model training result* 
+
 ## Deploy to ESP32
 
 The following instructions will help you build and deploy this sample
 to [ESP32](https://www.espressif.com/en/products/hardware/esp32/overview)
 devices using the [ESP IDF](https://github.com/espressif/esp-idf).
 
+Connect the SCK to pin 32, WS to pin 25 and SD to pin 33.
 
 ### Building the example
 
@@ -60,3 +69,4 @@ idf.py --port /dev/ttyUSB0 flash monitor
 ```
 Heard snoring (<score>) at <time>
 ```
+The score varies from 0 to 255, with 128 being the detection threshold and 255 indicating 100% confidence.
