@@ -9,7 +9,7 @@ and has an accuracy of 95% on the test data.
 
 ![The log mel spectrograms fed to the model](log_mel_image.PNG)
 :--:
-*The log mel spectrograms fed to the model* 
+*Example of a snoring audio sample's log mel spectrogram fed to the model* 
 
 The datasets of audio samples used for training are made up of 500 snoring sounds, 500 non-snoring sounds, sourced from this work:
 T. H. Khan, "A deep learning model for snoring detection and vibration notification using a smart wearable gadget," Electronics,
