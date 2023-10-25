@@ -31,6 +31,6 @@ void tf_main(void) {
 }
 
 extern "C" void app_main() {
-  xTaskCreate((TaskFunction_t)&tf_main, "tensorflow", 8 * 1024, NULL, 8, NULL);
+  xTaskCreatePinnedToCore((TaskFunction_t)&tf_main, "tensorflow", 8 * 1024, NULL, tskIDLE_PRIORITY, NULL, 0);
   vTaskDelete(NULL);
 }

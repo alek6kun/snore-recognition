@@ -74,7 +74,7 @@ TfLiteStatus FeatureProvider::PopulateFeatureData(
   if (is_first_run_) {
     TfLiteStatus init_status = InitializeMicroFeatures();
     xMutex = xSemaphoreCreateMutex();
-    xTaskCreate(GetAudioSamples, "GetAudioSamples", 1024 * 8, NULL, 10, &xAudio);
+    xTaskCreatePinnedToCore(GetAudioSamples, "GetAudioSamples", 1024 * 8, NULL, 10, &xAudio, 1);
     if (init_status != kTfLiteOk) {
       return init_status;
     }
